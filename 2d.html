@@ -1,0 +1,110 @@
+<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>ঢাকার রাস্তা</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Hind Siliguri',sans-serif;background:#111;color:#fff;overflow:hidden;height:100vh;user-select:none}
+.s{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+.s.on{display:flex}
+#home{background:linear-gradient(#1b0f2e,#a8325e 55%,#f59e2b)}
+h1{font-size:clamp(52px,12vw,130px);line-height:1.15;text-shadow:0 6px 0 #0006}
+.sub{font-size:clamp(16px,2.4vw,24px);opacity:.92;margin:8px 0 30px}
+.btn{font:700 28px 'Hind Siliguri',sans-serif;padding:10px 56px;border:0;border-radius:40px;background:#ffd23f;color:#222;cursor:pointer;box-shadow:0 6px 0 #b8870b}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b8870b}
+.credit{position:absolute;bottom:14px;font-size:14px;opacity:.75}
+#pick{background:#16202a}
+#pick h2{font-size:clamp(28px,5vw,44px)}
+.cards{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:22px}
+.card{width:230px;background:#223344;border-radius:16px;padding:14px;cursor:pointer;border:3px solid transparent}
+.card:hover{border-color:#ffd23f;transform:translateY(-4px)}
+.im{height:120px;display:flex;align-items:center;justify-content:center}
+.im img{max-width:100%;max-height:120px}
+.card b{display:block;font-size:26px;margin-top:8px}
+.card small{opacity:.8}
+#game{padding:0}#game.on{display:block}
+canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;top:10px;left:12px;font-size:clamp(14px,2.2vw,20px);font-weight:700;text-shadow:0 2px 3px #000;text-align:left;line-height:1.5}
+#hint{opacity:.8;font-weight:500;font-size:13px}
+#back{position:absolute;top:10px;right:12px;padding:6px 16px;border:0;border-radius:20px;background:#0008;color:#fff;font:700 15px 'Hind Siliguri',sans-serif}
+#tc{display:none;position:absolute;bottom:10px;left:10px;right:10px;justify-content:space-between}
+#tc div{display:flex;gap:10px}
+#tc button{width:74px;height:62px;border:0;border-radius:16px;background:#0009;color:#fff;font:700 16px 'Hind Siliguri',sans-serif}
+@media(pointer:coarse){#tc{display:flex}#hint{display:none}}
+</style></head><body>
+<div class="s on" id="home"><h1>ঢাকার রাস্তা</h1><p class="sub">রিকশা, বাস, সিএনজি আর জ্যামের শহর</p><button class="btn" id="play">চালান</button><div class="credit">ডেভেলপার: ইয়াকুব</div></div>
+<div class="s" id="pick"><h2>যানবাহন বেছে নিন</h2><div class="cards" id="cards"></div></div>
+<div class="s" id="game"><canvas id="c"></canvas>
+<div id="hud"><div id="h1"></div><div id="h2"></div><div id="h3"></div><div id="hint">→ গ্যাস &nbsp; ← ব্রেক &nbsp; ↑ ↓ লেন &nbsp; H হর্ন</div></div>
+<button id="back">← ফিরে যান</button>
+<div id="tc"><div><button data-l="-1">▲ লেন</button><button data-l="1">▼ লেন</button></div><div><button data-i="b">ব্রেক</button><button data-i="h">হর্ন</button><button data-i="g">গ্যাস</button></div></div></div>
+<script>
+const $=s=>document.querySelector(s),cv=$('#c'),g=cv.getContext('2d');
+let W,H;const rs=()=>{W=cv.width=innerWidth;H=cv.height=innerHeight};onresize=rs;rs();
+const bn=n=>String(Math.floor(n)).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]);
+const hh=i=>Math.abs(Math.sin(i*127.1+3.7)*43758.5)%1,mod=(a,b)=>((a%b)+b)%b;
+const IM={};['bus','rickshaw','car'].forEach(n=>{IM[n]=new Image();IM[n].src='assets/'+n+'.png'});
+const V={bus:{n:'বাস',d:'বড়, দ্রুত, ভারী',w:240,max:520,acc:130,img:'bus'},rickshaw:{n:'রিকশা',d:'ছোট, ধীর, ঘুরতে সহজ',w:120,max:210,acc:100,img:'rickshaw'},car:{n:'গাড়ি',d:'সবচেয়ে দ্রুত',w:170,max:620,acc:240,img:'car'}};
+const PAL=['#e63946','#f4a261','#2a9d8f','#457b9d','#ffd23f','#8338ec','#06d6a0','#ef476f'];
+const SH=[{t:'চায়ের দোকান',c:'#8a5a3b',s:'#c8102e',k:'tea'},{t:'মুদি দোকান',c:'#2f8f5b',s:'#14532d'},{t:'ফার্মেসি',c:'#e8f1f5',s:'#0077b6'},{t:'চায়ের দোকান',c:'#7a4a2b',s:'#b5179e',k:'tea'},{t:'বিরিয়ানি ঘর',c:'#f08a24',s:'#7f1d1d'},{t:'মুদি দোকান',c:'#3d7ea6',s:'#1d3557'},{t:'মোবাইল সেন্টার',c:'#6a4c93',s:'#240046'},{t:'বইয়ের দোকান',c:'#c9a227',s:'#5c3d00'}];
+function show(id){document.querySelectorAll('.s').forEach(e=>e.classList.toggle('on',e.id==id))}
+$('#play').onclick=()=>show('pick');
+$('#cards').innerHTML=Object.keys(V).map(k=>`<div class="card" data-k="${k}"><div class="im"><img src="assets/${V[k].img}.png"></div><b>${V[k].n}</b><small>${V[k].d}</small></div>`).join('');
+document.querySelectorAll('.card').forEach(c=>c.onclick=()=>start(c.dataset.k));
+$('#back').onclick=()=>{st=null;show('pick')};
+let st=null,last=0,LID=0;const inp={};
+const KM={ArrowRight:'g',d:'g',ArrowLeft:'b',a:'b',' ':'h',h:'h'};
+onkeydown=e=>{if(!st)return;const k=KM[e.key];if(k){inp[k]=1;if(k=='h')honk()}if(e.key=='ArrowUp'||e.key=='w')lane(-1);if(e.key=='ArrowDown'||e.key=='s')lane(1);e.preventDefault()};
+onkeyup=e=>{const k=KM[e.key];if(k)inp[k]=0};
+document.querySelectorAll('#tc button').forEach(b=>{const d=b.dataset;b.ontouchstart=e=>{e.preventDefault();if(d.l)lane(+d.l);else{inp[d.i]=1;if(d.i=='h')honk()}};b.ontouchend=()=>{if(d.i)inp[d.i]=0}});
+const lane=d=>{if(st)st.tl=Math.max(0,Math.min(2,st.tl+d))};
+let AC;const tone=(f,t,d,ty='square',v=.12)=>{try{AC=AC||new AudioContext();const o=AC.createOscillator(),a=AC.createGain();o.type=ty;o.frequency.value=f;a.gain.value=v;o.connect(a);a.connect(AC.destination);o.start(AC.currentTime+t);o.stop(AC.currentTime+t+d)}catch(e){}};
+function honk(){if(st.k=='rickshaw'){tone(1500,0,.08,'sine');tone(1500,.12,.08,'sine')}else if(st.k=='bus'){tone(140,0,.5);tone(175,0,.5)}else{tone(420,0,.3);tone(520,0,.3)}}
+const bump=()=>tone(80,0,.18,'sawtooth',.2);
+function start(k){const v=V[k];st={k,v,x:0,sp:0,lane:1,tl:1,t:0,hits:0,tr:[],cd:0,shake:0};LID++;last=performance.now();show('game');rs();loop(last,LID)}
+function loop(n,id){if(!st||id!=LID)return;const dt=Math.min((n-last)/1000,.05);last=n;upd(dt);draw();requestAnimationFrame(t=>loop(t,id))}
+const SP={rick:{w:120,v:[55,95]},cng:{w:105,v:[140,230]},bus:{w:240,v:[170,280]},car:{w:170,v:[200,340]}};
+function spawn(){const ty=['rick','cng','bus','car','cng','rick','car'][Math.random()*7|0],s=SP[ty],ln=Math.random()*3|0,beh=Math.random()<.3,cam=st.x-W*.3,xx=beh?cam-s.w-350:cam+W+300;
+if(st.tr.some(o=>o.lane==ln&&Math.abs(o.x-xx)<380))return;
+st.tr.push({k:ty=='rick'?'rickshaw':ty,w:s.w,x:xx,lane:ln,v:s.v[0]+Math.random()*(s.v[1]-s.v[0]),hue:Math.random()*360|0})}
+function upd(dt){const p=st,v=p.v;p.t+=dt;
+p.sp+=(inp.g?v.acc:-40)*dt-(inp.b?380*dt:0);p.sp=Math.max(0,Math.min(v.max,p.sp));
+p.lane+=(p.tl-p.lane)*Math.min(1,dt*7);p.x+=p.sp*dt;
+p.cd-=dt;if(p.cd<=0&&p.tr.length<14){p.cd=.7+Math.random()*1.2;spawn()}
+const cam=p.x-W*.3;
+for(const t of p.tr){t.x+=t.v*dt;
+if(Math.abs(t.lane-p.lane)<.55&&p.x+v.w*.92>t.x&&p.x<t.x+t.w*.92){
+if(t.x+t.w/2>p.x+v.w/2){p.x=t.x-v.w*.92;if(p.sp>t.v+40){p.hits++;p.shake=.3;bump()}p.sp=Math.min(p.sp,t.v*.7)}
+else{t.x=p.x-t.w*.92;t.v=Math.max(t.v*.7,40)}}}
+p.tr=p.tr.filter(t=>t.x>cam-1200&&t.x<cam+W+2500)}
+function npc(px,py,c,t,sit){g.fillStyle='#e0b48c';g.beginPath();g.arc(px,py-34,6,0,7);g.fill();g.fillStyle=c;g.fillRect(px-6,py-28,12,18);g.fillStyle='#333';const s=sit?0:Math.sin(t*6+px)*5;g.fillRect(px-5+s,py-10,4,sit?6:10);g.fillRect(px+1-s,py-10,4,sit?6:10)}
+function seg(i,sx,hz){const r=hh(i),d=SH[Math.floor(r*8)],ah=130+hh(i+9)*130;
+g.fillStyle=PAL[Math.floor(hh(i+5)*8)]+'';g.globalAlpha=.55;g.fillRect(sx+6,hz-ah,270,ah);g.globalAlpha=1;
+g.fillStyle='#fff7';for(let a=0;a<4;a++)for(let b=0;b<ah/45-1;b++)g.fillRect(sx+22+a*62,hz-ah+16+b*45,30,24);
+const w=250,hg=100,x0=sx+25;g.fillStyle=d.c;g.fillRect(x0,hz-hg,w,hg);g.fillStyle='#2a2a2a';g.fillRect(x0+10,hz-hg+32,w-20,hg-32);
+for(let k=0;k<(w-30)/17;k++)for(let j=0;j<3;j++){g.fillStyle=PAL[(k*3+j+i+8)%8];g.fillRect(x0+16+k*17,hz-hg+42+j*17,11,11)}
+if(d.k){g.fillStyle='#999';g.fillRect(x0+20,hz-40,30,24);g.fillStyle='#fff6';for(let k=0;k<3;k++){g.beginPath();g.arc(x0+34+Math.sin(st.t*3+k)*6,hz-48-k*12,5,0,7);g.fill()}
+g.fillStyle='#5b3a1e';[70,160].forEach(o=>g.fillRect(x0+o,hz+34,70,6));
+npc(x0+95,hz+34,PAL[i%8],st.t,1);npc(x0+185,hz+34,PAL[(i+3)%8],st.t,1)}
+g.fillStyle=d.s;g.fillRect(x0-6,hz-hg-4,w+12,32);
+for(let k=0;k<w/20;k++){g.fillStyle=k%2?'#e63946':'#fff';g.fillRect(x0+k*20,hz-hg+28,20,10)}
+g.fillStyle='#fff';g.font='700 20px "Hind Siliguri",sans-serif';g.textAlign='center';g.fillText(d.t,x0+w/2,hz-hg+19);
+g.fillStyle='#555';g.fillRect(sx+150,hz-60,4,60);g.fillStyle='#ffe9a8';g.fillRect(sx+144,hz-66,16,8);
+for(let k=0;k<2;k++)npc(i*300+30+hh(i*3+k)*240+Math.sin(st.t*.5+i+k*2)*40-0,hz+H*.045+k*H*.03,PAL[(i*2+k)%8],st.t,0)}
+function cng(sx,by,w){g.fillStyle='#1f9d55';g.fillRect(sx+5,by-62,w-10,42);g.fillStyle='#ffd23f';g.fillRect(sx+5,by-67,w-10,6);g.fillStyle='#bfe9ff';g.fillRect(sx+w*.55,by-56,w*.35,20);g.fillStyle='#111';[.25,.75].forEach(f=>{g.beginPath();g.arc(sx+w*f,by-11,11,0,7);g.fill()})}
+function veh(k,sx,l,w,hue,pl){const by=H*(.66+.11*l)+16-(pl?Math.abs(Math.sin(st.t*14))*Math.min(2,st.sp/150):0);
+g.fillStyle='#0005';g.beginPath();g.ellipse(sx+w/2,by,w*.5,6,0,0,7);g.fill();
+if(k=='cng'){cng(sx,by,w);return}
+const im=IM[k];if(!im.naturalWidth)return;const h=w*im.naturalHeight/im.naturalWidth;
+if(k=='car'){g.fillStyle='#111';[.18,.8].forEach(f=>{g.beginPath();g.arc(sx+w*f,by-w*.08,w*.085,0,7);g.fill()})}
+g.save();g.filter=hue?`hue-rotate(${hue}deg)`:'none';
+if(k=='car'){g.translate(sx+w,0);g.scale(-1,1);g.drawImage(im,0,by-h-4,w,h)}else g.drawImage(im,sx,by-h,w,h);g.restore()}
+function draw(){const cam=st.x-W*.3,hz=H*.5;g.save();
+if(st.shake>0){g.translate((Math.random()-.5)*8,(Math.random()-.5)*8);st.shake-=.016}
+const sk=g.createLinearGradient(0,0,0,hz);sk.addColorStop(0,'#6fb7ea');sk.addColorStop(1,'#fde9c4');g.fillStyle=sk;g.fillRect(0,0,W,hz);
+const c2=cam*.2;for(let i=-1;i<W/90+2;i++){const sx=i*90-mod(c2,90),k=Math.floor(c2/90)+i,h=60+hh(k)*100;g.fillStyle='#8aa5b8';g.fillRect(sx,hz-h,70,h)}
+g.fillStyle='#b9b2a3';g.fillRect(0,hz,W,H*.1);g.fillStyle='#3d3f45';g.fillRect(0,H*.6,W,H*.4);g.fillStyle='#ddd';g.fillRect(0,H*.6,W,6);
+const f0=Math.floor(cam/300)-1;for(let i=f0;i<f0+W/300+3;i++)seg(i,i*300-cam,hz);
+g.fillStyle='#fff8';for(const y of[.715,.825])for(let sx=-mod(cam,120);sx<W;sx+=120)g.fillRect(sx,H*y,60,4);
+const L=st.tr.map(t=>({l:t.lane,f:()=>veh(t.k,t.x-cam,t.lane,t.w,t.hue,0)}));L.push({l:st.lane,f:()=>veh(st.k,st.x-cam,st.lane,st.v.w,0,1)});
+L.sort((a,b)=>a.l-b.l).forEach(o=>o.f());g.restore();
+$('#h1').textContent='গতি: '+bn(st.sp/4)+' কিমি/ঘণ্টা';$('#h2').textContent='দূরত্ব: '+bn(st.x/20)+' মিটার';$('#h3').textContent='ধাক্কা: '+bn(st.hits)}
+</script></body></html>
