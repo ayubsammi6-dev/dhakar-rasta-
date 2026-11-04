@@ -22,6 +22,7 @@ canvas{display:block;width:100%;height:100%}
 #hud{position:absolute;top:10px;left:12px;font-size:clamp(14px,2.2vw,20px);font-weight:700;text-shadow:0 2px 3px #000;text-align:left;line-height:1.5}
 #hint{opacity:.8;font-weight:500;font-size:13px}
 #back{position:absolute;top:10px;right:12px;padding:6px 16px;border:0;border-radius:20px;background:#0008;color:#fff;font:700 15px 'Hind Siliguri',sans-serif}
+#pop{position:absolute;top:18%;left:50%;transform:translateX(-50%);padding:8px 22px;border-radius:24px;background:#c8102e;font-size:clamp(20px,4vw,32px);font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 #ld{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#000a;font-size:28px;font-weight:700}
 #tc{display:none;position:absolute;bottom:10px;left:10px;right:10px;justify-content:space-between}
 #tc div{display:flex;gap:10px}
@@ -32,7 +33,7 @@ canvas{display:block;width:100%;height:100%}
 <div class="s" id="pick"><h2>যানবাহন বেছে নিন</h2><div class="cards" id="cards"></div></div>
 <div class="s" id="game"><canvas id="c"></canvas>
 <div id="hud"><div id="h1"></div><div id="h2"></div><div id="h3"></div><div id="hint">W/↑ গ্যাস &nbsp; S/↓ ব্রেক &nbsp; A D / ← → স্টিয়ারিং &nbsp; H হর্ন</div></div>
-<button id="back">← ফিরে যান</button><div id="ld">লোড হচ্ছে...</div>
+<button id="back">← ফিরে যান</button><div id="pop"></div><div id="ld">লোড হচ্ছে...</div>
 <div id="tc"><div><button data-i="l">◀</button><button data-i="r">▶</button></div><div><button data-i="b">ব্রেক</button><button data-i="h">হর্ন</button><button data-i="g">গ্যাস</button></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -156,12 +157,13 @@ onkeyup=e=>{const k=KM[e.key];if(k)inp[k]=0};
 document.querySelectorAll('#tc button').forEach(b=>{const i=b.dataset.i;b.ontouchstart=e=>{e.preventDefault();inp[i]=1;if(i=='h')honk()};b.ontouchend=()=>inp[i]=0});
 let AC;const tone=(f,t,d,ty='square',v=.12)=>{try{AC=AC||new AudioContext();const o=AC.createOscillator(),a=AC.createGain();o.type=ty;o.frequency.value=f;a.gain.value=v;o.connect(a);a.connect(AC.destination);o.start(AC.currentTime+t);o.stop(AC.currentTime+t+d)}catch(e){}};
 function honk(){const k=st.k;if(k=='rickshaw'){tone(1500,0,.08,'sine');tone(1500,.12,.08,'sine')}else if(k=='bus'){tone(140,0,.5);tone(175,0,.5)}else{tone(420,0,.3);tone(520,0,.3)}}
+let PT;function pop(f){const e=$('#pop');e.textContent='ধাক্কা! জরিমানা ৳'+bn(f);e.style.opacity=1;clearTimeout(PT);PT=setTimeout(()=>e.style.opacity=0,1600)}
 const bump=()=>tone(80,0,.18,'sawtooth',.2);
 function resize(){R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(innerWidth,innerHeight,false);CAM.aspect=innerWidth/innerHeight;CAM.updateProjectionMatrix()}onresize=resize;
 async function start(k){show('game');$('#ld').style.display='flex';resize();
 try{await Promise.race([document.fonts.load('700 48px "Hind Siliguri"'),new Promise(r=>setTimeout(r,1500))])}catch(e){}
 if(PG)S.remove(PG);TR.forEach(t=>S.remove(t.g));TR=[];for(const c in CH)S.remove(CH[c].G);CH={};
-const v=V[k],g=mkVeh(k,1);S.add(g);PG=g;st={k,v,g,x:0,z:0,sp:0,t:0,hits:0,cd:0,shake:0,yaw:0,dist:0};
+const v=V[k],g=mkVeh(k,1);S.add(g);PG=g;st={k,v,g,x:0,z:0,sp:0,t:0,hits:0,fine:0,cd:0,shake:0,yaw:0,dist:0};
 CAM.position.set(0,v.cam[0],v.cam[1]);$('#ld').style.display='none';LID++;last=performance.now();loop(last,LID)}
 const LX=[-5.25,-1.75,1.75,5.25],SP={rick:[3,5,'rickshaw',2.6,1.2],cng:[8,13,'cng',2.2,1.4],bus:[9,14,'bus',11,2.6],car:[10,18,'car',4.4,1.9]};
 function spawn(){const ty=['rick','cng','bus','car','cng','rick','car'][Math.random()*7|0],s=SP[ty],li=Math.random()*4|0,beh=Math.random()<.3,z=beh?st.z+rnd(50,90):st.z-rnd(200,280);
@@ -176,7 +178,7 @@ p.yaw+=(-steer*.12-p.yaw)*Math.min(1,dt*6);p.z-=p.sp*dt;p.dist+=p.sp*dt;
 p.cd-=dt;if(p.cd<=0&&TR.length<14){p.cd=rnd(.8,2);spawn()}
 for(const t of TR){t.z-=t.v*dt;t.x=LX[t.li]+Math.sin(p.t*.5+t.ph)*.3;
 if(Math.abs(t.x-p.x)<(t.wid+v.wid)/2&&Math.abs(t.z-p.z)<(t.len+v.len)/2){const hl=(t.len+v.len)/2;
-if(t.z<p.z){p.z=t.z+hl;if(p.sp>t.v+4){p.hits++;p.shake=.35;bump()}p.sp=Math.min(p.sp,t.v*.7)}else{t.z=p.z+hl;t.v=Math.max(t.v*.7,3)}}
+if(t.z<p.z){p.z=t.z+hl;if(p.sp>t.v+4){const f=Math.round((200+(p.sp-t.v)*60)*(t.k=='rickshaw'?1.5:1)/10)*10;p.hits++;p.fine+=f;p.shake=.35;bump();pop(f)}p.sp=Math.min(p.sp,t.v*.7)}else{t.z=p.z+hl;t.v=Math.max(t.v*.7,3)}}
 t.g.position.set(t.x,0,t.z);spin(t.g,t.v,dt)}
 TR=TR.filter(t=>{const ok=t.z<p.z+200&&t.z>p.z-420;if(!ok)S.remove(t.g);return ok});
 p.g.position.set(p.x,0,p.z);p.g.rotation.y=p.yaw;spin(p.g,p.sp,dt);
@@ -187,5 +189,5 @@ SUN.position.set(p.x+30,55,p.z+25);SUN.target.position.set(p.x,0,p.z);
 const c=v.cam,sh=p.shake>0?(p.shake-=dt,(Math.random()-.5)*.25):0;
 CAM.position.x+=((p.x*.7)-CAM.position.x)*Math.min(1,dt*4);CAM.position.y=c[0]+sh;CAM.position.z=p.z+c[1]+p.sp*.05;
 CAM.lookAt(p.x*.8,c[0]*.35,p.z-14);CAM.fov=58+p.sp*.45;CAM.updateProjectionMatrix();
-$('#h1').textContent='গতি: '+bn(p.sp*3.6)+' কিমি/ঘণ্টা';$('#h2').textContent='দূরত্ব: '+bn(p.dist)+' মিটার';$('#h3').textContent='ধাক্কা: '+bn(p.hits)}
+$('#h1').textContent='গতি: '+bn(p.sp*3.6)+' কিমি/ঘণ্টা';$('#h2').textContent='দূরত্ব: '+bn(p.dist)+' মিটার';$('#h3').textContent='ধাক্কা: '+bn(p.hits)+' · জরিমানা: ৳'+bn(p.fine)}
 </script></body></html>
