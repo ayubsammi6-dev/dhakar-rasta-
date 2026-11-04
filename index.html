@@ -1,4 +1,4 @@
-<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>ঢাকার রাস্তা ৩ডি</title>
+<!doctype html><html lang="bn"><head><meta charset="utf-8"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#a8325e"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>ঢাকার রাস্তা ৩ডি</title>
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
@@ -10,6 +10,7 @@ h1{font-size:clamp(52px,12vw,130px);line-height:1.15;text-shadow:0 6px 0 #0006}
 .sub{font-size:clamp(16px,2.4vw,24px);opacity:.92;margin:8px 0 30px}
 .btn{font:700 28px 'Hind Siliguri',sans-serif;padding:10px 56px;border:0;border-radius:40px;background:#ffd23f;color:#222;cursor:pointer;box-shadow:0 6px 0 #b8870b}
 .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b8870b}
+.dls{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center}.sbtn{font:700 16px 'Hind Siliguri',sans-serif;padding:8px 20px;border:2px solid #fff8;border-radius:24px;background:#0003;color:#fff;cursor:pointer;text-decoration:none}.lr{margin-top:20px;font-size:15px;opacity:.9}
 .credit{position:absolute;bottom:14px;font-size:14px;opacity:.75}
 #pick{background:#16202a}#pick h2{font-size:clamp(28px,5vw,44px)}
 .cards{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:22px}
@@ -29,8 +30,8 @@ canvas{display:block;width:100%;height:100%}
 #tc button{width:72px;height:62px;border:0;border-radius:16px;background:#0009;color:#fff;font:700 16px 'Hind Siliguri',sans-serif}
 @media(pointer:coarse){#tc{display:flex}#hint{display:none}}
 </style></head><body>
-<div class="s on" id="home"><h1>ঢাকার রাস্তা</h1><p class="sub">রিকশা, বাস, সিএনজি আর জ্যামের শহর · ৩ডি</p><button class="btn" id="play">চালান</button><div class="credit">ডেভেলপার: ইয়াকুব</div></div>
-<div class="s" id="pick"><h2>যানবাহন বেছে নিন</h2><div class="cards" id="cards"></div></div>
+<div class="s on" id="home"><h1>ঢাকার রাস্তা</h1><p class="sub">রিকশা, বাস, সিএনজি আর জ্যামের শহর · ৩ডি</p><button class="btn" id="play">চালান</button><div class="dls"><button class="sbtn" id="dl">⬇ পিসি অ্যাপ ইনস্টল</button><a class="sbtn" id="dlx" href="#" style="display:none">⬇ .exe ডাউনলোড</a></div><div class="credit">ডেভেলপার: ইয়াকুব</div></div>
+<div class="s" id="pick"><h2>যানবাহন বেছে নিন</h2><div class="cards" id="cards"></div><label class="lr"><input type="checkbox" id="low"> কম RAM মোড (দুর্বল পিসির জন্য)</label></div>
 <div class="s" id="game"><canvas id="c"></canvas>
 <div id="hud"><div id="h1"></div><div id="h2"></div><div id="h3"></div><div id="hint">W/↑ গ্যাস &nbsp; S/↓ ব্রেক &nbsp; A D / ← → স্টিয়ারিং &nbsp; H হর্ন</div></div>
 <button id="back">← ফিরে যান</button><div id="pop"></div><div id="ld">লোড হচ্ছে...</div>
@@ -38,6 +39,8 @@ canvas{display:block;width:100%;height:100%}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const $=s=>document.querySelector(s),cv=$('#c');
+const PC_URL='';/* .exe er download link ekhane boshao, jemon 'https://.../DhakarRasta.exe' */
+let LOW;{let v=null;try{v=localStorage.getItem('lowram')}catch(e){}LOW=v==null?((navigator.deviceMemory||8)<=4||(navigator.hardwareConcurrency||8)<=4):v=='1'}
 const bn=n=>String(Math.floor(n)).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]);
 const hh=i=>Math.abs(Math.sin(i*127.1+3.7)*43758.5)%1,rnd=(a,b)=>a+Math.random()*(b-a);
 const PAL=['#e63946','#f4a261','#2a9d8f','#457b9d','#ffd23f','#8338ec','#06d6a0','#ef476f'];
@@ -51,7 +54,7 @@ document.querySelectorAll('.card').forEach(c=>c.onclick=()=>start(c.dataset.k));
 $('#back').onclick=()=>{st=null;show('pick')};
 
 /* ---------- three setup ---------- */
-const R=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+const R=new THREE.WebGLRenderer({canvas:cv,antialias:!LOW,powerPreference:LOW?'low-power':'high-performance'});
 R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.05;R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
 const S=new THREE.Scene(),CAM=new THREE.PerspectiveCamera(60,1,.1,420);
 const TC={};
@@ -60,7 +63,7 @@ function rep(t,x,y){const c=t.clone();c.needsUpdate=true;c.repeat.set(x,y);retur
 S.background=tex('sky',2,256,(c,w,h)=>{const g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#5d9fd6');g.addColorStop(.6,'#bcd5e6');g.addColorStop(1,'#ebe3d2');c.fillStyle=g;c.fillRect(0,0,w,h)});
 S.fog=new THREE.Fog(0xd9dfe0,45,260);
 S.add(new THREE.HemisphereLight(0xcfe6ff,0x6b5a48,.85));
-const SUN=new THREE.DirectionalLight(0xfff0d6,1.5);SUN.castShadow=true;SUN.shadow.mapSize.set(2048,2048);
+const SUN=new THREE.DirectionalLight(0xfff0d6,1.5);SUN.castShadow=true;SUN.shadow.mapSize.set(LOW?1024:2048,LOW?1024:2048);
 Object.assign(SUN.shadow.camera,{left:-45,right:45,top:45,bottom:-45,near:1,far:160});SUN.shadow.bias=-.0004;S.add(SUN,SUN.target);
 const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.55,metalness:.1},o));
 const BX=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
@@ -159,8 +162,10 @@ let AC;const tone=(f,t,d,ty='square',v=.12)=>{try{AC=AC||new AudioContext();cons
 function honk(){const k=st.k;if(k=='rickshaw'){tone(1500,0,.08,'sine');tone(1500,.12,.08,'sine')}else if(k=='bus'){tone(140,0,.5);tone(175,0,.5)}else{tone(420,0,.3);tone(520,0,.3)}}
 let PT;function pop(f){const e=$('#pop');e.textContent='ধাক্কা! জরিমানা ৳'+bn(f);e.style.opacity=1;clearTimeout(PT);PT=setTimeout(()=>e.style.opacity=0,1600)}
 const bump=()=>tone(80,0,.18,'sawtooth',.2);
-function resize(){R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(innerWidth,innerHeight,false);CAM.aspect=innerWidth/innerHeight;CAM.updateProjectionMatrix()}onresize=resize;
-async function start(k){show('game');$('#ld').style.display='flex';resize();
+function resize(){R.setPixelRatio(LOW?1:Math.min(devicePixelRatio,2));R.setSize(innerWidth,innerHeight,false);CAM.aspect=innerWidth/innerHeight;CAM.updateProjectionMatrix()}onresize=resize;
+function applyQ(){R.shadowMap.enabled=!LOW;SUN.castShadow=!LOW;S.fog.far=LOW?140:260;CAM.far=LOW?170:420;CAM.updateProjectionMatrix();resize();S.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>m.needsUpdate=true)})}
+$('#low').checked=LOW;$('#low').onchange=e=>{LOW=e.target.checked;try{localStorage.setItem('lowram',LOW?'1':'0')}catch(x){}};
+async function start(k){show('game');$('#ld').style.display='flex';applyQ();
 try{await Promise.race([document.fonts.load('700 48px "Hind Siliguri"'),new Promise(r=>setTimeout(r,1500))])}catch(e){}
 if(PG)S.remove(PG);TR.forEach(t=>S.remove(t.g));TR=[];for(const c in CH)S.remove(CH[c].G);CH={};
 const v=V[k],g=mkVeh(k,1);S.add(g);PG=g;st={k,v,g,x:0,z:0,sp:0,t:0,hits:0,fine:0,hc:0,cd:0,shake:0,yaw:0,dist:0};
@@ -175,7 +180,7 @@ function upd(dt){const p=st,v=p.v;p.t+=dt;
 p.sp+=(inp.g?v.acc:-1.2)*dt-(inp.b?v.acc*2.2*dt:0);p.sp=Math.max(0,Math.min(v.max,p.sp));
 const steer=(inp.r?1:0)-(inp.l?1:0);p.x+=steer*dt*Math.min(6,p.sp*.6+.8);p.x=Math.max(-7+v.wid/2+.3,Math.min(7-v.wid/2-.3,p.x));
 p.yaw+=(-steer*.12-p.yaw)*Math.min(1,dt*6);p.z-=p.sp*dt;p.dist+=p.sp*dt;
-p.cd-=dt;p.hc-=dt;if(p.cd<=0&&TR.length<22){p.cd=rnd(.5,1.3);spawn(undefined,Math.random()<.22)}
+p.cd-=dt;p.hc-=dt;if(p.cd<=0&&TR.length<(LOW?12:22)){p.cd=rnd(.5,1.3);spawn(undefined,Math.random()<.22)}
 for(const t of TR){
 if(t.stun>0)t.stun-=dt;
 else if(t.mode==0){t.z-=t.v*dt;t.x=LX[t.li]+Math.sin(p.t*.5+t.ph)*.3;
@@ -191,12 +196,19 @@ p.sp=0;t.stun=2.5;p.z=t.z+(t.z<p.z?1:-1)*(hl+.3)}}
 t.g.position.set(t.x,0,t.z);spin(t.g,t.mode==1?t.sv:t.v,dt)}
 TR=TR.filter(t=>{const ok=t.z<p.z+200&&t.z>p.z-420;if(!ok)S.remove(t.g);return ok});
 p.g.position.set(p.x,0,p.z);p.g.rotation.y=p.yaw;spin(p.g,p.sp,dt);
-const kp=Math.floor(-p.z/CL);for(let k=kp-3;k<=kp+9;k++)if(!CH[k]){CH[k]=chunk(k);S.add(CH[k].G)}
-for(const k in CH){if(k<kp-3||k>kp+9){S.remove(CH[k].G);delete CH[k]}else for(const n of CH[k].npcs){n.p.position.z+=n.d*n.v*dt;if(Math.abs(n.p.position.z)>15)n.d*=-1;n.p.rotation.y=n.d>0?0:Math.PI;const a=Math.sin(p.t*5*n.v)*.6;n.p.userData.legs[0].rotation.x=a;n.p.userData.legs[1].rotation.x=-a}}
+const kp=Math.floor(-p.z/CL);for(let k=kp-3;k<=kp+(LOW?5:9);k++)if(!CH[k]){CH[k]=chunk(k);S.add(CH[k].G)}
+for(const k in CH){if(k<kp-3||k>kp+(LOW?5:9)){S.remove(CH[k].G);delete CH[k]}else for(const n of CH[k].npcs){n.p.position.z+=n.d*n.v*dt;if(Math.abs(n.p.position.z)>15)n.d*=-1;n.p.rotation.y=n.d>0?0:Math.PI;const a=Math.sin(p.t*5*n.v)*.6;n.p.userData.legs[0].rotation.x=a;n.p.userData.legs[1].rotation.x=-a}}
 road.position.z=p.z;roadT.offset.y=-p.z/28;fps.forEach(f=>{f[0].position.z=p.z;f[1].position.z=p.z});pvT.offset.y=-p.z/1.5;gnd.position.z=p.z;
 SUN.position.set(p.x+30,55,p.z+25);SUN.target.position.set(p.x,0,p.z);
 const c=v.cam,sh=p.shake>0?(p.shake-=dt,(Math.random()-.5)*.25):0;
 CAM.position.x+=((p.x*.7)-CAM.position.x)*Math.min(1,dt*4);CAM.position.y=c[0]+sh;CAM.position.z=p.z+c[1]+p.sp*.05;
 CAM.lookAt(p.x*.8,c[0]*.35,p.z-14);CAM.fov=58+p.sp*.45;CAM.updateProjectionMatrix();
 $('#h1').textContent='গতি: '+bn(p.sp*3.6)+' কিমি/ঘণ্টা';$('#h2').textContent='দূরত্ব: '+bn(p.dist)+' মিটার';$('#h3').textContent='ধাক্কা: '+bn(p.hits)+' · জরিমানা: ৳'+bn(p.fine)}
+
+let DP=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();DP=e});
+const isApp=/Electron/.test(navigator.userAgent)||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
+if(isApp)$('.dls').style.display='none';
+if(PC_URL){const x=$('#dlx');x.href=PC_URL;x.style.display='';x.setAttribute('download','')}
+$('#dl').onclick=async()=>{if(DP){DP.prompt();await DP.userChoice;DP=null}else alert('Chrome ba Edge e address bar er dan dike ইনস্টল (⊕) আইকনে ক্লিক করুন, অথবা মেনু → "অ্যাপ ইনস্টল করুন" চাপুন।')};
+if('serviceWorker' in navigator&&location.protocol!='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
