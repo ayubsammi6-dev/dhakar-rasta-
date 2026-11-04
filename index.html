@@ -163,23 +163,32 @@ function resize(){R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(innerW
 async function start(k){show('game');$('#ld').style.display='flex';resize();
 try{await Promise.race([document.fonts.load('700 48px "Hind Siliguri"'),new Promise(r=>setTimeout(r,1500))])}catch(e){}
 if(PG)S.remove(PG);TR.forEach(t=>S.remove(t.g));TR=[];for(const c in CH)S.remove(CH[c].G);CH={};
-const v=V[k],g=mkVeh(k,1);S.add(g);PG=g;st={k,v,g,x:0,z:0,sp:0,t:0,hits:0,fine:0,cd:0,shake:0,yaw:0,dist:0};
-CAM.position.set(0,v.cam[0],v.cam[1]);$('#ld').style.display='none';LID++;last=performance.now();loop(last,LID)}
+const v=V[k],g=mkVeh(k,1);S.add(g);PG=g;st={k,v,g,x:0,z:0,sp:0,t:0,hits:0,fine:0,hc:0,cd:0,shake:0,yaw:0,dist:0};
+CAM.position.set(0,v.cam[0],v.cam[1]);for(let i=0;i<40&&TR.length<15;i++)spawn(st.z-rnd(35,290),Math.random()<.22);$('#ld').style.display='none';LID++;last=performance.now();loop(last,LID)}
 const LX=[-5.25,-1.75,1.75,5.25],SP={rick:[3,5,'rickshaw',2.6,1.2],cng:[8,13,'cng',2.2,1.4],bus:[9,14,'bus',11,2.6],car:[10,18,'car',4.4,1.9]};
-function spawn(){const ty=['rick','cng','bus','car','cng','rick','car'][Math.random()*7|0],s=SP[ty],li=Math.random()*4|0,beh=Math.random()<.3,z=beh?st.z+rnd(50,90):st.z-rnd(200,280);
-if(TR.some(o=>o.li==li&&Math.abs(o.z-z)<35))return;const g=mkVeh(s[2],0);g.position.set(LX[li],0,z);S.add(g);
-TR.push({g,k:s[2],li,z,x:LX[li],ph:Math.random()*6,v:rnd(s[0],s[1]),len:s[3],wid:s[4]})}
+function spawn(z0,onc){const ty=['rick','cng','bus','car','cng','rick','car'][Math.random()*7|0],s=SP[ty],li=onc?0:1+(Math.random()*3|0),beh=z0===undefined&&!onc&&Math.random()<.3,z=z0!==undefined?z0:onc?st.z-rnd(180,260):beh?st.z+rnd(50,90):st.z-rnd(200,280);
+if(TR.some(o=>o.li==li&&Math.abs(o.z-z)<35))return;const g=mkVeh(s[2],0);if(onc)g.rotation.y=Math.PI;g.position.set(LX[li],0,z);S.add(g);
+TR.push({g,k:s[2],li,z,x:LX[li],ph:Math.random()*6,v:onc?rnd(7,15):rnd(s[0],s[1]),len:s[3],wid:s[4],mode:onc?2:0,th:0,sv:0,stun:0})}
 function loop(n,id){if(!st||id!=LID)return;const dt=Math.min((n-last)/1000,.05);last=n;upd(dt);R.render(S,CAM);requestAnimationFrame(t=>loop(t,id))}
 function spin(g,sp,dt){g.userData.w.forEach(w=>w.rotation.x-=sp*dt/w.userData.r)}
 function upd(dt){const p=st,v=p.v;p.t+=dt;
 p.sp+=(inp.g?v.acc:-1.2)*dt-(inp.b?v.acc*2.2*dt:0);p.sp=Math.max(0,Math.min(v.max,p.sp));
 const steer=(inp.r?1:0)-(inp.l?1:0);p.x+=steer*dt*Math.min(6,p.sp*.6+.8);p.x=Math.max(-7+v.wid/2+.3,Math.min(7-v.wid/2-.3,p.x));
 p.yaw+=(-steer*.12-p.yaw)*Math.min(1,dt*6);p.z-=p.sp*dt;p.dist+=p.sp*dt;
-p.cd-=dt;if(p.cd<=0&&TR.length<14){p.cd=rnd(.8,2);spawn()}
-for(const t of TR){t.z-=t.v*dt;t.x=LX[t.li]+Math.sin(p.t*.5+t.ph)*.3;
-if(Math.abs(t.x-p.x)<(t.wid+v.wid)/2&&Math.abs(t.z-p.z)<(t.len+v.len)/2){const hl=(t.len+v.len)/2;
-if(t.z<p.z){p.z=t.z+hl;if(p.sp>t.v+4){const f=Math.round((200+(p.sp-t.v)*60)*(t.k=='rickshaw'?1.5:1)/10)*10;p.hits++;p.fine+=f;p.shake=.35;bump();pop(f)}p.sp=Math.min(p.sp,t.v*.7)}else{t.z=p.z+hl;t.v=Math.max(t.v*.7,3)}}
-t.g.position.set(t.x,0,t.z);spin(t.g,t.v,dt)}
+p.cd-=dt;p.hc-=dt;if(p.cd<=0&&TR.length<22){p.cd=rnd(.5,1.3);spawn(undefined,Math.random()<.22)}
+for(const t of TR){
+if(t.stun>0)t.stun-=dt;
+else if(t.mode==0){t.z-=t.v*dt;t.x=LX[t.li]+Math.sin(p.t*.5+t.ph)*.3;
+if(t.li==1&&t.k!='bus'&&t.z<p.z-25&&t.z>p.z-140&&Math.random()<dt*.12){t.mode=1;t.th=0;t.sv=Math.max(t.v*.5,3)}}
+else if(t.mode==1){t.th+=t.sv/1.75*dt;if(t.th>=Math.PI){t.th=Math.PI;t.mode=2;t.li=0;t.v=rnd(7,14);t.x=LX[0]}else{t.x-=Math.sin(t.th)*t.sv*dt;t.z-=Math.cos(t.th)*t.sv*dt}}
+else{t.z+=t.v*dt;t.x=LX[0]+Math.sin(p.t*.5+t.ph)*.3}
+t.g.rotation.y=t.mode==0?0:t.mode==1?t.th:Math.PI;
+const sw=t.mode==1&&t.th>.6&&t.th<2.5,tl=sw?t.wid:t.len,tw=sw?t.len:t.wid;
+if(Math.abs(t.x-p.x)<(tw+v.wid)/2&&Math.abs(t.z-p.z)<(tl+v.len)/2){const hl=(tl+v.len)/2;
+if(t.mode==0){if(t.z<p.z){p.z=t.z+hl;if(p.sp>t.v+4){const f=Math.round((200+(p.sp-t.v)*60)*(t.k=='rickshaw'?1.5:1)/10)*10;p.hits++;p.fine+=f;p.shake=.35;bump();pop(f)}p.sp=Math.min(p.sp,t.v*.7)}else{t.z=p.z+hl;t.v=Math.max(t.v*.7,3)}}
+else{if(p.hc<=0){const f=Math.round((300+(p.sp+t.v)*70)*(t.k=='rickshaw'?1.5:1)/10)*10;p.hits++;p.fine+=f;p.shake=.5;bump();pop(f);p.hc=1}
+p.sp=0;t.stun=2.5;p.z=t.z+(t.z<p.z?1:-1)*(hl+.3)}}
+t.g.position.set(t.x,0,t.z);spin(t.g,t.mode==1?t.sv:t.v,dt)}
 TR=TR.filter(t=>{const ok=t.z<p.z+200&&t.z>p.z-420;if(!ok)S.remove(t.g);return ok});
 p.g.position.set(p.x,0,p.z);p.g.rotation.y=p.yaw;spin(p.g,p.sp,dt);
 const kp=Math.floor(-p.z/CL);for(let k=kp-3;k<=kp+9;k++)if(!CH[k]){CH[k]=chunk(k);S.add(CH[k].G)}
