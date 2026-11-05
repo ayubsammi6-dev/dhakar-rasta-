@@ -21,19 +21,22 @@ h1{font-size:40px;margin:0 0 6px}
 .v button.on{background:#f0b429;color:#111}
 #st{background:#e53935;font-size:20px;margin-top:12px}
 small{opacity:.8;display:block;margin-top:14px;line-height:1.6}
+#dlb{background:#1e88e5;border:0;border-radius:12px;padding:12px 16px;margin:4px;font-size:16px;font-weight:700;cursor:pointer;color:#fff}
+#toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);background:#c62828;padding:10px 18px;border-radius:12px;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none}
 </style>
 </head>
 <body>
 <canvas id="g"></canvas>
-<div class="hud"><div id="spd">0</div>কিমি/ঘণ্টা<br><span id="vn"></span><br><small style="margin:4px 0 0">W/A/S/D বা তীর · Space ব্রেক · H হর্ন · 1 রিকশা 2 গাড়ি 3 বাস</small></div>
+<div class="hud"><div id="spd">0</div>কিমি/ঘণ্টা<br><span id="vn"></span><br><b id="fn" style="color:#ff8a80">জরিমানা: ৳0</b><br><small style="margin:4px 0 0">W/A/S/D বা তীর · Space ব্রেক · H হর্ন · 1 রিকশা 2 গাড়ি 3 বাস</small></div>
 <canvas id="mm" width="170" height="170"></canvas>
+<div id="toast"></div>
 <div class="tc" style="left:12px"><button data-k="KeyA">◀</button><button data-k="KeyD">▶</button></div>
 <div class="tc" style="right:12px"><button data-k="KeyS">⏹</button><button data-k="KeyW">▲</button></div>
 <div id="ov"><div>
 <h1>ঢাকার রাস্তা</h1>
-<p>বাংলাদেশের রাস্তায় চালাও রিকশা, সাদা গাড়ি আর লাল বাস।</p>
+<p>বাংলাদেশের রাস্তায় চালাও রিকশা, সাদা গাড়ি আর লাল বাস। ধাক্কা দিলে জরিমানা!</p>
 <div class="v"><button data-v="rick" class="on">🛺 রিকশা</button><button data-v="car">🚗 গাড়ি</button><button data-v="bus">🚌 বাস</button></div>
-<button id="st">চালানো শুরু করো</button>
+<button id="st">চালানো শুরু করো</button><br><button id="dlb">⬇ গেম ডাউনলোড করো</button>
 <small>ডেভেলপার: Yakub Ansari<br>Discord bot, website, web3 ডেভেলপার · চট্টগ্রাম</small>
 </div></div>
 <script>
@@ -41,11 +44,13 @@ const $=id=>document.getElementById(id);
 const R=80,W=16,B=R-W,roads=[-160,-80,0,80,160];
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x9fd3f5);scene.fog=new THREE.Fog(0x9fd3f5,70,280);
 const cam=new THREE.PerspectiveCamera(65,1,.5,500);
-const rend=new THREE.WebGLRenderer({canvas:$('g'),antialias:true});rend.setPixelRatio(Math.min(devicePixelRatio,2));
+const rend=new THREE.WebGLRenderer({canvas:$('g'),antialias:true});rend.setPixelRatio(Math.min(devicePixelRatio,2));rend.shadowMap.enabled=true;rend.shadowMap.type=THREE.PCFSoftShadowMap;
 function rs(){rend.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
 addEventListener('resize',rs);rs();
 scene.add(new THREE.HemisphereLight(0xffffff,0x667766,.95));
-const sun=new THREE.DirectionalLight(0xfff0cc,.7);sun.position.set(60,120,40);scene.add(sun);
+const sun=new THREE.DirectionalLight(0xfff0cc,.75);sun.position.set(60,120,40);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.bias=-.0015;Object.assign(sun.shadow.camera,{left:-70,right:70,top:70,bottom:-70,near:10,far:320});scene.add(sun,sun.target);
+const sunB=new THREE.Mesh(new THREE.SphereGeometry(16,16,12),new THREE.MeshBasicMaterial({color:0xfff3b0,fog:false}));sunB.position.set(260,190,260);scene.add(sunB);
+for(let i=0;i<9;i++){const c=new THREE.Mesh(new THREE.BoxGeometry(30+Math.random()*30,6,14+Math.random()*10),new THREE.MeshBasicMaterial({color:0xffffff,fog:false,transparent:true,opacity:.85}));c.position.set(Math.random()*500-250,110+Math.random()*30,Math.random()*500-250);scene.add(c)}
 const M=c=>new THREE.MeshLambertMaterial({color:c});
 function box(w,h,d,c,x,y,z,p){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c));m.position.set(x,y,z);(p||scene).add(m);return m}
 function wheel(p,x,y,z,r){r=r||.45;const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.35,14),M(0x111111));m.rotation.z=Math.PI/2;m.position.set(x,y,z);p.add(m)}
@@ -58,8 +63,8 @@ const rt=cv(32,64,x=>{x.fillStyle='#2b2b2e';x.fillRect(0,0,32,64);x.fillStyle='#
 rt.wrapS=rt.wrapT=THREE.RepeatWrapping;const L=360+W;rt.repeat.set(1,L/32);
 roads.forEach((r,i)=>{
   const mat=new THREE.MeshLambertMaterial({map:rt});
-  const a=new THREE.Mesh(new THREE.PlaneGeometry(W,L),mat);a.rotation.x=-Math.PI/2;a.position.set(r,.02,0);scene.add(a);
-  const w=new THREE.Object3D();const b=new THREE.Mesh(new THREE.PlaneGeometry(W,L),mat);b.rotation.x=-Math.PI/2;w.add(b);w.rotation.y=Math.PI/2;w.position.set(0,.03,r);scene.add(w);
+  const a=new THREE.Mesh(new THREE.PlaneGeometry(W,L),mat);a.rotation.x=-Math.PI/2;a.position.set(r,.02,0);a.receiveShadow=true;scene.add(a);
+  const w=new THREE.Object3D();const b=new THREE.Mesh(new THREE.PlaneGeometry(W,L),mat);b.rotation.x=-Math.PI/2;b.receiveShadow=true;w.add(b);w.rotation.y=Math.PI/2;w.position.set(0,.03,r);scene.add(w);
 });
 roads.forEach(x=>roads.forEach(z=>box(W,.02,W,0x2b2b2e,x,.05,z)));
 
@@ -74,7 +79,9 @@ for(let i=0;i<4;i++)for(let j=0;j<4;j++){
   BK.push([cx,cz]);
   box(B,.3,B,0xb4b0a4,cx,.15,cz);
   const h=14+Math.random()*18,t=winT.clone();t.needsUpdate=true;t.repeat.set(4,h/8);
-  const cb=new THREE.Mesh(new THREE.BoxGeometry(30,h,30),new THREE.MeshLambertMaterial({map:t,color:walls[Math.random()*5|0]}));cb.position.set(cx,.3+h/2,cz);scene.add(cb);
+  const cb=new THREE.Mesh(new THREE.BoxGeometry(30,h,30),new THREE.MeshLambertMaterial({map:t,color:walls[Math.random()*5|0]}));cb.position.set(cx,.3+h/2,cz);cb.castShadow=true;scene.add(cb);
+  [[-31,-31],[31,-31],[-31,31],[31,31]].forEach(c=>{box(.5,3,.5,0x6d4c41,cx+c[0],1.8,cz+c[1]);const tr=new THREE.Mesh(new THREE.ConeGeometry(2,5,8),M(0x2e7d32));tr.position.set(cx+c[0],5.8,cz+c[1]);tr.castShadow=true;scene.add(tr)});
+  [0,2].forEach(s=>{const a=s*Math.PI/2,lx=cx+Math.sin(a)*32,lz=cz+Math.cos(a)*32;box(.2,6,.2,0x333333,lx,3.3,lz);box(.9,.3,.9,0xffeeaa,lx,6.5,lz)});
   for(let s=0;s<4;s++){
     const sg=new THREE.Object3D();sg.position.set(cx,.3,cz);sg.rotation.y=s*Math.PI/2;scene.add(sg);
     [-12,12].forEach(lx=>{
@@ -106,7 +113,7 @@ function mk(t){
     box(1.2,1.1,.1,c,0,1.55,-1.25,g);box(.4,.6,.3,0x2e7d32,0,1.4,.7,g);box(.3,.3,.3,0xc68642,0,1.85,.7,g);
     box(.1,.1,.9,0x555555,0,1.0,1.0,g);box(.8,.06,.06,0x222222,0,1.3,1.5,g);
   }
-  return g;
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g;
 }
 const VT={rick:{mv:13,ac:14,tr:1.9,d:9,h:5,r:1.6,n:'রিকশা'},car:{mv:34,ac:26,tr:1.6,d:11,h:5.5,r:2.2,n:'সাদা গাড়ি'},bus:{mv:24,ac:16,tr:1.1,d:17,h:8,r:3,n:'লাল বাস'}};
 let type='rick',pm=null;const P={x:4,z:-60,h:0,v:0,ch:0};
@@ -146,6 +153,7 @@ addEventListener('keydown',e=>{K[e.code]=1;if(e.code==='Digit1')sw('rick');if(e.
 addEventListener('keyup',e=>K[e.code]=0);
 document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k;b.onpointerdown=e=>{K[k]=1;e.preventDefault()};['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>K[k]=0))});
 let play=false;
+$('dlb').onclick=()=>{const h='<!DOCTYPE html>\n'+document.documentElement.outerHTML,a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download='dhaka-road.html';a.click()};
 $('st').onclick=()=>{$('ov').style.display='none';play=true;try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}};
 
 // minimap
@@ -162,13 +170,15 @@ function drawMap(){
 }
 
 // loop
+let fine=0,fcd=0,tt=0;const FN={rick:200,car:500,bus:1000};
+function hit(w){if(fcd>0)return;fcd=1.5;fine+=FN[type];$('fn').textContent='জরিমানা: ৳'+fine;const T=$('toast');T.textContent='💥 '+w+' ধাক্কা! জরিমানা ৳'+FN[type];T.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>T.style.opacity=0,1400)}
 let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.05,(now-last)/1000);last=now;
   const t=VT[type];
   if(play){
-    const up=K.KeyW||K.ArrowUp,dn=K.KeyS||K.ArrowDown,lt=K.KeyA||K.ArrowLeft,rt2=K.KeyD||K.ArrowRight;
+    fcd-=dt;const up=K.KeyW||K.ArrowUp,dn=K.KeyS||K.ArrowDown,lt=K.KeyA||K.ArrowLeft,rt2=K.KeyD||K.ArrowRight;
     if(up)P.v+=t.ac*dt;else if(dn)P.v-=(P.v>0?t.ac*2.2:t.ac*.6)*dt;else P.v-=Math.sign(P.v)*Math.min(Math.abs(P.v),6*dt);
     if(K.Space)P.v-=Math.sign(P.v)*Math.min(Math.abs(P.v),t.ac*3*dt);
     P.v=Math.max(-t.mv*.35,Math.min(t.mv,P.v));
@@ -176,11 +186,11 @@ function loop(now){
     P.x+=Math.sin(P.h)*P.v*dt;P.z+=Math.cos(P.h)*P.v*dt;
     P.x=Math.max(-175,Math.min(175,P.x));P.z=Math.max(-175,Math.min(175,P.z));
     BK.forEach(b=>{const hb=B/2-1+t.r*.6,dx=P.x-b[0],dz=P.z-b[1];
-      if(Math.abs(dx)<hb&&Math.abs(dz)<hb){const px=hb-Math.abs(dx),pz=hb-Math.abs(dz);if(px<pz)P.x+=Math.sign(dx||1)*px;else P.z+=Math.sign(dz||1)*pz;P.v*=.6}});
-    npcs.forEach(n=>{const dx=P.x-n.m.position.x,dz=P.z-n.m.position.z,d=Math.hypot(dx,dz),m=t.r+2.2;if(d<m&&d>.01){P.x+=dx/d*(m-d)*.5;P.z+=dz/d*(m-d)*.5;P.v*=.93}});
+      if(Math.abs(dx)<hb&&Math.abs(dz)<hb){const px=hb-Math.abs(dx),pz=hb-Math.abs(dz);if(px<pz)P.x+=Math.sign(dx||1)*px;else P.z+=Math.sign(dz||1)*pz;P.v*=.6;if(Math.abs(P.v)>1.5)hit('বিল্ডিংয়ে')}});
+    npcs.forEach(n=>{const dx=P.x-n.m.position.x,dz=P.z-n.m.position.z,d=Math.hypot(dx,dz),m=t.r+2.2;if(d<m&&d>.01){P.x+=dx/d*(m-d)*.5;P.z+=dz/d*(m-d)*.5;P.v*=.93;hit(n.ty==='bus'?'বাসে':n.ty==='car'?'গাড়িতে':'রিকশায়')}});
   }
   npcs.forEach(n=>stepN(n,dt));
-  pm.position.set(P.x,0,P.z);pm.rotation.y=P.h;
+  pm.position.set(P.x,0,P.z);pm.rotation.y=P.h;sun.position.set(P.x+60,120,P.z+40);sun.target.position.set(P.x,0,P.z);
   P.ch+=ad(P.ch,P.h)*(1-Math.exp(-4*dt));
   const fx=Math.sin(P.ch),fz=Math.cos(P.ch);
   cam.position.set(P.x-fx*t.d,t.h,P.z-fz*t.d);cam.lookAt(P.x+fx*8,1.6,P.z+fz*8);
