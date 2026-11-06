@@ -191,6 +191,38 @@ function gar(){$('gp').innerHTML='<h2 style="margin:0 0 8px">🏪 গ্যা�
 $('gb').onclick=()=>{gar();$('gar').style.display='flex'};
 $('gar').onclick=e=>{const k=e.target.dataset&&e.target.dataset.b;if(e.target.id==='gx'||e.target===$('gar')){$('gar').style.display='none';return}
  if(!k)return;if(!owned[k]){if(money>=PR[k]){money-=PR[k];owned[k]=1;sv();say('✅ কেনা হলো!','#2e7d32')}else{say('টাকা কম!');return}}sw(k);gar()};
+// green guide line on the road
+const GR=new Float32Array(8*18),gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.BufferAttribute(GR,3));gg.setDrawRange(0,0);
+const gm=new THREE.MeshBasicMaterial({color:0x00e676,transparent:true,opacity:.9,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+const gl=new THREE.Mesh(gg,gm);gl.frustumCulled=false;scene.add(gl);
+let route=[],rcol='#00e676';
+function snap(x,z){const bx=roads.reduce((a,r)=>Math.abs(r-x)<Math.abs(a-x)?r:a),bz=roads.reduce((a,r)=>Math.abs(r-z)<Math.abs(a-z)?r:a),cl=v=>Math.max(-160,Math.min(160,v));
+ return Math.abs(bx-x)<=Math.abs(bz-z)?{v:1,r:bx,c:cl(z)}:{v:0,r:bz,c:cl(x)}}
+function ends(p){const lo=Math.max(...roads.filter(q=>q<=p.c)),hi=Math.min(...roads.filter(q=>q>=p.c));return [lo,hi].map(c=>p.v?[p.r,c]:[c,p.r])}
+function mkRoute(ax,az,bx,bz){
+ const A=snap(ax,az),Bp=snap(bx,bz),pa=A.v?[A.r,A.c]:[A.c,A.r],pb=Bp.v?[Bp.r,Bp.c]:[Bp.c,Bp.r];
+ if(A.v===Bp.v&&A.r===Bp.r)return [pa,pb];
+ let best=null,bl=1e9;
+ ends(A).forEach(e=>ends(Bp).forEach(f=>{
+  const back=((e[0]-P.x)*Math.sin(P.h)+(e[1]-P.z)*Math.cos(P.h))<0?40:0;
+  const l=Math.abs(e[0]-f[0])+Math.abs(e[1]-f[1])+Math.abs(e[0]-pa[0])+Math.abs(e[1]-pa[1])+Math.abs(f[0]-pb[0])+Math.abs(f[1]-pb[1])+back;
+  if(l<bl){bl=l;best=[pa,e,[f[0],e[1]],f,pb]}}));
+ return best}
+function guide(tm){
+ let tg=null,col=0x00e676;const near=a=>a.reduce((m,s)=>Math.hypot(s.x-P.x,s.z-P.z)<Math.hypot(m.x-P.x,m.z-P.z)?s:m);
+ if(onb.length)tg=near(onb.map(p=>stops[p.d]));
+ else{const w=stops.filter(s=>s.n>0);if(w.length){tg=near(w);col=0xffd600}}
+ route=tg&&Math.hypot(tg.x-P.x,tg.z-P.z)>14?mkRoute(P.x,P.z,tg.x,tg.z):[];
+ rcol=col===0x00e676?'#00e676':'#ffd600';
+ let n=0;
+ for(let i=0;i<route.length-1;i++){
+  const a=route[i],b=route[i+1],dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz);if(l<.01)continue;
+  const ox=-dz/l*.8,oz=dx/l*.8,y=.12;
+  const v=[a[0]+ox,y,a[1]+oz,a[0]-ox,y,a[1]-oz,b[0]+ox,y,b[1]+oz,a[0]-ox,y,a[1]-oz,b[0]-ox,y,b[1]-oz,b[0]+ox,y,b[1]+oz];
+  GR.set(v,n*18);n++}
+ gg.attributes.position.needsUpdate=true;gg.setDrawRange(0,n*6);
+ gm.color.set(col);gm.opacity=.65+.3*Math.sin(tm*6);
+}
 // minimap
 const mm=$('mm').getContext('2d'),S=170,ks=S/380;
 const MX=x=>S/2-x*ks,MY=z=>S/2-z*ks;
@@ -198,6 +230,7 @@ function drawMap(){
   mm.fillStyle='#233023';mm.fillRect(0,0,S,S);
   mm.strokeStyle='#8a8a8a';mm.lineWidth=W*ks;
   roads.forEach(r=>{mm.beginPath();mm.moveTo(MX(r),0);mm.lineTo(MX(r),S);mm.moveTo(0,MY(r));mm.lineTo(S,MY(r));mm.stroke()});
+  if(route.length>1){mm.strokeStyle=rcol;mm.lineWidth=3;mm.beginPath();route.forEach((p,i)=>i?mm.lineTo(MX(p[0]),MY(p[1])):mm.moveTo(MX(p[0]),MY(p[1])));mm.stroke()}
   const nd=new Set(onb.map(p=>p.d));stops.forEach((s,i)=>{if(nd.has(i)||s.n>0){mm.fillStyle=nd.has(i)?'#00e676':'#ffd600';mm.beginPath();mm.arc(MX(s.x),MY(s.z),3.5,0,7);mm.fill()}});
   npcs.forEach(n=>{mm.fillStyle=n.ty==='bus'?'#ff3b3b':n.ty==='car'?'#fff':'#ffd54f';mm.fillRect(MX(n.m.position.x)-1.5,MY(n.m.position.z)-1.5,3,3)});
   const px=MX(P.x),py=MY(P.z),fx=-Math.sin(P.h),fy=-Math.cos(P.h);
@@ -214,7 +247,7 @@ function loop(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
   const t=VT[type];
   if(play){
-    fcd-=dt;stopStep(dt);$('mn').textContent='💵 ৳'+money+' · আয় ৳'+earned;$('ob').textContent='🧍 '+onb.length+'/'+CAP[type];const up=K.KeyW||K.ArrowUp,dn=K.KeyS||K.ArrowDown,lt=K.KeyA||K.ArrowLeft,rt2=K.KeyD||K.ArrowRight;
+    fcd-=dt;stopStep(dt);guide(now/1000);$('mn').textContent='💵 ৳'+money+' · আয় ৳'+earned;$('ob').textContent='🧍 '+onb.length+'/'+CAP[type];const up=K.KeyW||K.ArrowUp,dn=K.KeyS||K.ArrowDown,lt=K.KeyA||K.ArrowLeft,rt2=K.KeyD||K.ArrowRight;
     if(up)P.v+=t.ac*dt;else if(dn)P.v-=(P.v>0?t.ac*2.2:t.ac*.6)*dt;else P.v-=Math.sign(P.v)*Math.min(Math.abs(P.v),6*dt);
     if(K.Space)P.v-=Math.sign(P.v)*Math.min(Math.abs(P.v),t.ac*3*dt);
     P.v=Math.max(-t.mv*.35,Math.min(t.mv,P.v));
