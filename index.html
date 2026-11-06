@@ -27,9 +27,9 @@ small{opacity:.8;display:block;margin-top:14px;line-height:1.6}
 </head>
 <body>
 <canvas id="g"></canvas>
-<div class="hud"><div id="spd">0</div>কিমি/ঘণ্টা<br><span id="vn"></span><br><b id="fn" style="color:#ff8a80">জরিমানা: ৳0</b><br><small style="margin:4px 0 0">W/A/S/D বা তীর · Space ব্রেক · H হর্ন · 1 রিকশা 2 গাড়ি 3 বাস</small></div>
+<div class="hud"><div id="spd">0</div>কিমি/ঘণ্টা<br><span id="vn"></span><br><b id="mn" style="color:#69f0ae"></b><br><span id="ob"></span><br><button id="gb" style="margin:2px 0;padding:6px 10px;border-radius:8px;border:0;background:#f0b429;font-weight:700">🏪 গ্যারেজ (G)</button><br><b id="fn" style="color:#ff8a80">জরিমানা: ৳0</b><br><small style="margin:4px 0 0">W/A/S/D বা তীর · Space ব্রেক · H হর্ন · 1 রিকশা 2 গাড়ি 3 বাস</small></div>
 <canvas id="mm" width="170" height="170"></canvas>
-<div id="toast"></div>
+<div id="toast"></div><div id="gar" style="display:none;position:fixed;inset:0;background:#000a;align-items:center;justify-content:center;z-index:5"><div id="gp" style="background:#1b1f2a;padding:18px;border-radius:16px;min-width:280px;text-align:center"></div></div>
 <div class="tc" style="left:12px"><button data-k="KeyA">◀</button><button data-k="KeyD">▶</button></div>
 <div class="tc" style="right:12px"><button data-k="KeyS">⏹</button><button data-k="KeyW">▲</button></div>
 <div id="ov"><div>
@@ -59,7 +59,7 @@ const ad=(a,b)=>{let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Ma
 
 // ground, roads
 box(900,.1,900,0x7d8b6a,0,-.06,0);
-const rt=cv(32,64,x=>{x.fillStyle='#2b2b2e';x.fillRect(0,0,32,64);x.fillStyle='#ececec';x.fillRect(15,0,2,32);x.fillStyle='#666';x.fillRect(0,0,1,64);x.fillRect(31,0,1,64)});
+const rt=cv(32,64,x=>{x.fillStyle='#2b2b2e';x.fillRect(0,0,32,64);x.fillStyle='#ffd54f';x.fillRect(14,0,1,64);x.fillRect(17,0,1,64);x.fillStyle='#ececec';x.fillRect(2,0,1,64);x.fillRect(29,0,1,64)});
 rt.wrapS=rt.wrapT=THREE.RepeatWrapping;const L=360+W;rt.repeat.set(1,L/32);
 roads.forEach((r,i)=>{
   const mat=new THREE.MeshLambertMaterial({map:rt});
@@ -67,19 +67,24 @@ roads.forEach((r,i)=>{
   const w=new THREE.Object3D();const b=new THREE.Mesh(new THREE.PlaneGeometry(W,L),mat);b.rotation.x=-Math.PI/2;b.receiveShadow=true;w.add(b);w.rotation.y=Math.PI/2;w.position.set(0,.03,r);scene.add(w);
 });
 roads.forEach(x=>roads.forEach(z=>box(W,.02,W,0x2b2b2e,x,.05,z)));
+const zt=cv(64,16,x=>{x.fillStyle='#2b2b2e';x.fillRect(0,0,64,16);x.fillStyle='#f2f2f2';for(let i=0;i<8;i++)x.fillRect(i*8+1,0,4,16)});
+roads.forEach(x=>roads.forEach(z=>[0,1,2,3].forEach(q=>{const a=q*Math.PI/2,m=new THREE.Mesh(new THREE.PlaneGeometry(14,3.5),new THREE.MeshLambertMaterial({map:zt}));m.rotation.set(-Math.PI/2,0,q%2?Math.PI/2:0);m.position.set(x+Math.sin(a)*11,.07,z+Math.cos(a)*11);scene.add(m)})));
 
 // shops and buildings
 const ST=[['চায়ের দোকান','#b5651d'],['মুদি দোকান','#2e7d32'],['ফার্মেসি','#0277bd'],['বিরিয়ানি হাউস','#c62828'],['মোবাইল সার্ভিসিং','#6a1b9a'],['কাপড়ের দোকান','#ad1457'],['ফলের দোকান','#ef6c00'],['সেলুন','#00838f']].map(([t,c])=>({c,tex:cv(256,64,x=>{x.fillStyle=c;x.fillRect(0,0,256,64);x.strokeStyle='#fff';x.lineWidth=3;x.strokeRect(3,3,250,58);x.fillStyle='#fff';x.font='bold 28px "Noto Sans Bengali",Vrinda,"Nirmala UI",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(t,128,34)})}));
 const walls=[0xf1e3c4,0xdfe8d0,0xd6e4ee,0xf0d4d4,0xe8d9f0];
 const winT=cv(64,64,x=>{x.fillStyle='#e6e1d6';x.fillRect(0,0,64,64);for(let i=0;i<2;i++)for(let j=0;j<2;j++){x.fillStyle=Math.random()<.3?'#ffd86b':'#4a6178';x.fillRect(8+i*32,8+j*32,18,20)}});
 winT.wrapS=winT.wrapT=THREE.RepeatWrapping;
+const mkS=(t,c)=>cv(512,128,x=>{x.fillStyle=c;x.fillRect(0,0,512,128);x.strokeStyle='#fff';x.lineWidth=6;x.strokeRect(6,6,500,116);x.fillStyle='#fff';x.font='bold 56px "Noto Sans Bengali",Vrinda,"Nirmala UI",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(t,256,68)});
+const SPECIAL={'0,0':{c:0xf6d04d,t:mkS('আদর্শ স্কুল','#1565c0')},'1,2':{c:0xc9a27a,t:mkS('সরকারি কলেজ','#6a1b9a')},'3,1':{c:0xf8a5c2,t:mkS('কিন্ডারগার্টেন','#e91e63')}};
 const BK=[];
 for(let i=0;i<4;i++)for(let j=0;j<4;j++){
   const cx=(roads[i]+roads[i+1])/2,cz=(roads[j]+roads[j+1])/2;
   BK.push([cx,cz]);
   box(B,.3,B,0xb4b0a4,cx,.15,cz);
-  const h=14+Math.random()*18,t=winT.clone();t.needsUpdate=true;t.repeat.set(4,h/8);
-  const cb=new THREE.Mesh(new THREE.BoxGeometry(30,h,30),new THREE.MeshLambertMaterial({map:t,color:walls[Math.random()*5|0]}));cb.position.set(cx,.3+h/2,cz);cb.castShadow=true;scene.add(cb);
+  const sp=SPECIAL[i+','+j],h=sp?10:14+Math.random()*18,t=winT.clone();t.needsUpdate=true;t.repeat.set(4,h/8);
+  const cb=new THREE.Mesh(new THREE.BoxGeometry(30,h,30),new THREE.MeshLambertMaterial({map:t,color:sp?sp.c:walls[Math.random()*5|0]}));cb.position.set(cx,.3+h/2,cz);cb.castShadow=true;scene.add(cb);
+  if(sp){[0,1,2,3].forEach(q=>{const a=q*Math.PI/2,pl=new THREE.Mesh(new THREE.PlaneGeometry(22,5.5),new THREE.MeshBasicMaterial({map:sp.t}));pl.position.set(cx+Math.sin(a)*15.1,.3+h-2.5,cz+Math.cos(a)*15.1);pl.rotation.y=a;scene.add(pl)});box(.3,8,.3,0xdddddd,cx,.3+h+4,cz);box(3,1.8,.1,0x00a651,cx+1.6,.3+h+7.2,cz)}
   [[-31,-31],[31,-31],[-31,31],[31,31]].forEach(c=>{box(.5,3,.5,0x6d4c41,cx+c[0],1.8,cz+c[1]);const tr=new THREE.Mesh(new THREE.ConeGeometry(2,5,8),M(0x2e7d32));tr.position.set(cx+c[0],5.8,cz+c[1]);tr.castShadow=true;scene.add(tr)});
   [0,2].forEach(s=>{const a=s*Math.PI/2,lx=cx+Math.sin(a)*32,lz=cz+Math.cos(a)*32;box(.2,6,.2,0x333333,lx,3.3,lz);box(.9,.3,.9,0xffeeaa,lx,6.5,lz)});
   for(let s=0;s<4;s++){
@@ -116,8 +121,11 @@ function mk(t){
   g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g;
 }
 const VT={rick:{mv:13,ac:14,tr:1.9,d:9,h:5,r:1.6,n:'রিকশা'},car:{mv:34,ac:26,tr:1.6,d:11,h:5.5,r:2.2,n:'সাদা গাড়ি'},bus:{mv:24,ac:16,tr:1.1,d:17,h:8,r:3,n:'লাল বাস'}};
+let SV={};try{SV=JSON.parse(localStorage.getItem('dr')||'{}')}catch(e){}
+const owned=Object.assign({rick:1},SV.owned||{});let st2=0;
+function say(m,c){const T=$('toast');T.textContent=m;T.style.background=c||'#c62828';T.style.opacity=1;clearTimeout(st2);st2=setTimeout(()=>T.style.opacity=0,1600)}
 let type='rick',pm=null;const P={x:4,z:-60,h:0,v:0,ch:0};
-function sw(t){type=t;if(pm)scene.remove(pm);pm=mk(t);scene.add(pm);$('vn').textContent=VT[t].n;document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===t))}
+function sw(t){if(!owned[t]){say('🔒 গ্যারেজ (G) থেকে কিনতে হবে');return}type=t;if(pm)scene.remove(pm);pm=mk(t);scene.add(pm);$('vn').textContent=VT[t].n;document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===t))}
 sw('rick');
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>sw(b.dataset.v));
 
@@ -130,7 +138,7 @@ function spawn(){
   if(z){n.x=r;n.z=c;n.hd=Math.random()<.5?0:2}else{n.x=c;n.z=r;n.hd=Math.random()<.5?1:3}
   n.m.position.set(n.x,0,n.z);npcs.push(n);
 }
-for(let i=0;i<34;i++)spawn();
+for(let i=0;i<44;i++)spawn();
 function stepN(n,dt){
   const a=n.hd*Math.PI/2,dx=Math.round(Math.sin(a)),dz=Math.round(Math.cos(a));
   const ox=n.x,oz=n.z;n.x+=dx*n.s*dt;n.z+=dz*n.s*dt;
@@ -149,13 +157,40 @@ function stepN(n,dt){
 // input
 const K={};let ac=null;
 function horn(){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=type==='bus'?190:type==='car'?330:520;g.gain.value=.12;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.3)}
-addEventListener('keydown',e=>{K[e.code]=1;if(e.code==='Digit1')sw('rick');if(e.code==='Digit2')sw('car');if(e.code==='Digit3')sw('bus');if(e.code==='KeyH')horn();if(e.code.startsWith('Arrow')||e.code==='Space')e.preventDefault()});
+addEventListener('keydown',e=>{K[e.code]=1;if(e.code==='Digit1')sw('rick');if(e.code==='Digit2')sw('car');if(e.code==='Digit3')sw('bus');if(e.code==='KeyH')horn();if(e.code==='KeyG'){gar();$('gar').style.display=$('gar').style.display==='flex'?'none':'flex'}if(e.code.startsWith('Arrow')||e.code==='Space')e.preventDefault()});
 addEventListener('keyup',e=>K[e.code]=0);
 document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k;b.onpointerdown=e=>{K[k]=1;e.preventDefault()};['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>K[k]=0))});
 let play=false;
 $('dlb').onclick=()=>{const h='<!DOCTYPE html>\n'+document.documentElement.outerHTML,a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download='dhaka-road.html';a.click()};
 $('st').onclick=()=>{$('ov').style.display='none';play=true;try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}};
 
+// passenger stops, money, garage
+const CAP={rick:2,car:4,bus:15},RATE={rick:1,car:1.5,bus:.8},PR={rick:0,car:3000,bus:8000},NM={rick:'🛺 রিকশা',car:'🚗 সাদা গাড়ি',bus:'🚌 লাল বাস'};
+let money=SV.money||0,earned=SV.earned||0;const onb=[],stops=[],PC=[0xe53935,0x1e88e5,0xfdd835,0x43a047,0x8e24aa,0xfb8c00];
+function sv(){try{localStorage.setItem('dr',JSON.stringify({money,earned,owned}))}catch(e){}}
+BK.forEach(b=>[1,3].forEach(s=>{const a=s*Math.PI/2,x=b[0]+Math.sin(a)*31.4,z=b[1]+Math.cos(a)*31.4,g=new THREE.Group();g.position.set(x,.3,z);g.rotation.y=a;scene.add(g);
+ box(3.6,.2,2,0x1565c0,0,3.2,-1.2,g);box(.15,3,.15,0x555555,-1.7,1.5,-1.9,g);box(.15,3,.15,0x555555,1.7,1.5,-1.9,g);
+ const figs=[0,1,2].map(k=>{const f=new THREE.Group();f.position.set(-1+k,0,-.2);box(.5,1,.3,PC[Math.random()*6|0],0,1.1,0,f);box(.35,.35,.35,0xc68642,0,1.8,0,f);box(.5,.6,.3,0x222222,0,.3,0,f);g.add(f);f.visible=false;return f});
+ const beam=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,16,16,1,true),new THREE.MeshBasicMaterial({color:0xffd600,transparent:true,opacity:.3,side:THREE.DoubleSide}));beam.position.y=8;beam.visible=false;g.add(beam);
+ stops.push({x,z,figs,beam,n:0})}));
+function addPax(){const c=stops.filter(s=>s.n<3);if(!c.length||stops.reduce((a,s)=>a+s.n,0)>=16)return;c[Math.random()*c.length|0].n++}
+for(let i=0;i<9;i++)addPax();
+let pt=0,hold=0;
+function stopStep(dt){
+ pt-=dt;if(pt<0){pt=5;addPax()}
+ const need=new Set(onb.map(p=>p.d));
+ stops.forEach((s,i)=>{s.figs.forEach((f,k)=>f.visible=k<s.n);const w=s.n>0&&onb.length<CAP[type],d=need.has(i);s.beam.visible=w||d;s.beam.material.color.set(d?0x00e676:0xffd600)});
+ const i=stops.findIndex(s=>Math.hypot(s.x-P.x,s.z-P.z)<12);
+ if(i>=0&&Math.abs(P.v)<2.5){hold+=dt;if(hold>.6){hold=0;const s=stops[i];let gain=0,out=0,inn=0;
+  for(let k=onb.length-1;k>=0;k--)if(onb[k].d===i){const p=onb.splice(k,1)[0];gain+=Math.round(Math.hypot(stops[p.o].x-s.x,stops[p.o].z-s.z)*RATE[type]);out++}
+  while(s.n>0&&onb.length<CAP[type]){s.n--;let d,t=0;do{d=Math.random()*stops.length|0}while((d===i||Math.hypot(stops[d].x-s.x,stops[d].z-s.z)<90)&&++t<30);onb.push({o:i,d});inn++}
+  if(gain){money+=gain;earned+=gain;say('💰 '+out+' জন নামল · ভাড়া +৳'+gain,'#2e7d32');sv()}else if(inn)say('🧍 '+inn+' জন যাত্রী উঠল, সবুজ বিমে নামাও','#1565c0')
+ }}else hold=0;
+}
+function gar(){$('gp').innerHTML='<h2 style="margin:0 0 8px">🏪 গ্যারেজ</h2><p>তোমার টাকা: ৳'+money+'</p>'+['rick','car','bus'].map(k=>'<div style="margin:8px 0">'+NM[k]+' <button data-b="'+k+'" style="padding:8px 12px;border:0;border-radius:8px;font-weight:700">'+(owned[k]?'চালাও':'কিনো ৳'+PR[k])+'</button></div>').join('')+'<button id="gx" style="margin-top:8px;padding:8px 14px;border:0;border-radius:8px">বন্ধ করো</button>'}
+$('gb').onclick=()=>{gar();$('gar').style.display='flex'};
+$('gar').onclick=e=>{const k=e.target.dataset&&e.target.dataset.b;if(e.target.id==='gx'||e.target===$('gar')){$('gar').style.display='none';return}
+ if(!k)return;if(!owned[k]){if(money>=PR[k]){money-=PR[k];owned[k]=1;sv();say('✅ কেনা হলো!','#2e7d32')}else{say('টাকা কম!');return}}sw(k);gar()};
 // minimap
 const mm=$('mm').getContext('2d'),S=170,ks=S/380;
 const MX=x=>S/2-x*ks,MY=z=>S/2-z*ks;
@@ -163,6 +198,7 @@ function drawMap(){
   mm.fillStyle='#233023';mm.fillRect(0,0,S,S);
   mm.strokeStyle='#8a8a8a';mm.lineWidth=W*ks;
   roads.forEach(r=>{mm.beginPath();mm.moveTo(MX(r),0);mm.lineTo(MX(r),S);mm.moveTo(0,MY(r));mm.lineTo(S,MY(r));mm.stroke()});
+  const nd=new Set(onb.map(p=>p.d));stops.forEach((s,i)=>{if(nd.has(i)||s.n>0){mm.fillStyle=nd.has(i)?'#00e676':'#ffd600';mm.beginPath();mm.arc(MX(s.x),MY(s.z),3.5,0,7);mm.fill()}});
   npcs.forEach(n=>{mm.fillStyle=n.ty==='bus'?'#ff3b3b':n.ty==='car'?'#fff':'#ffd54f';mm.fillRect(MX(n.m.position.x)-1.5,MY(n.m.position.z)-1.5,3,3)});
   const px=MX(P.x),py=MY(P.z),fx=-Math.sin(P.h),fy=-Math.cos(P.h);
   mm.fillStyle='#00e5ff';mm.beginPath();mm.moveTo(px+fx*9,py+fy*9);mm.lineTo(px-fx*5-fy*5,py-fy*5+fx*5);mm.lineTo(px-fx*5+fy*5,py-fy*5-fx*5);mm.fill();
@@ -171,14 +207,14 @@ function drawMap(){
 
 // loop
 let fine=0,fcd=0,tt=0;const FN={rick:200,car:500,bus:1000};
-function hit(w){if(fcd>0)return;fcd=1.5;fine+=FN[type];$('fn').textContent='জরিমানা: ৳'+fine;const T=$('toast');T.textContent='💥 '+w+' ধাক্কা! জরিমানা ৳'+FN[type];T.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>T.style.opacity=0,1400)}
+function hit(w){if(fcd>0)return;fcd=1.5;fine+=FN[type];money=Math.max(0,money-FN[type]);$('toast').style.background='#c62828';$('fn').textContent='জরিমানা: ৳'+fine;const T=$('toast');T.textContent='💥 '+w+' ধাক্কা! জরিমানা ৳'+FN[type];T.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>T.style.opacity=0,1400)}
 let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.05,(now-last)/1000);last=now;
   const t=VT[type];
   if(play){
-    fcd-=dt;const up=K.KeyW||K.ArrowUp,dn=K.KeyS||K.ArrowDown,lt=K.KeyA||K.ArrowLeft,rt2=K.KeyD||K.ArrowRight;
+    fcd-=dt;stopStep(dt);$('mn').textContent='💵 ৳'+money+' · আয় ৳'+earned;$('ob').textContent='🧍 '+onb.length+'/'+CAP[type];const up=K.KeyW||K.ArrowUp,dn=K.KeyS||K.ArrowDown,lt=K.KeyA||K.ArrowLeft,rt2=K.KeyD||K.ArrowRight;
     if(up)P.v+=t.ac*dt;else if(dn)P.v-=(P.v>0?t.ac*2.2:t.ac*.6)*dt;else P.v-=Math.sign(P.v)*Math.min(Math.abs(P.v),6*dt);
     if(K.Space)P.v-=Math.sign(P.v)*Math.min(Math.abs(P.v),t.ac*3*dt);
     P.v=Math.max(-t.mv*.35,Math.min(t.mv,P.v));
