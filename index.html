@@ -28,7 +28,7 @@ h1{font-size:40px;margin:0 0 6px}
 .v button.on{background:#f0b429;color:#111}
 #st{background:#e53935;font-size:20px;margin-top:12px}
 small{opacity:.8;display:block;margin-top:14px;line-height:1.6}
-#dlb{background:#1e88e5;border:0;border-radius:12px;padding:12px 16px;margin:4px;font-size:16px;font-weight:700;cursor:pointer;color:#fff}
+
 #toast{position:fixed;z-index:15;left:50%;top:22%;transform:translateX(-50%);background:#c62828;padding:10px 18px;border-radius:12px;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
 #gar{display:none;position:fixed;z-index:30;inset:0;background:#000b;align-items:center;justify-content:center;padding:15px}
 #gp{background:#1b1f2a;padding:18px;border-radius:16px;min-width:280px;max-width:95vw;text-align:center;max-height:80vh;overflow:auto}
@@ -66,7 +66,7 @@ button{-webkit-tap-highlight-color:transparent}
  <p style="font-size:13px;opacity:.85;margin:4px 0">আরও ১০টা আলাদা গাড়ি গ্যারেজে (G)</p>
  <button id="st">চালানো শুরু করো</button><br>
  <button id="ins">📲 অ্যাপ ইনস্টল করো</button><br>
- <button id="dlb">⬇ HTML ফাইল ডাউনলোড</button>
+
  <small>ডেভেলপার: Yakub Ansari<br>Discord bot, website, web3 ডেভেলপার · চট্টগ্রাম<br>নতুন আপডেট এলে অ্যাপ নিজে আপডেট হবে</small>
 </div></div>
 <script>
@@ -399,13 +399,7 @@ $('ins').addEventListener('click',async()=>{
 });
 updIns();
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-$('dlb').addEventListener('click',()=>{
- try{
-  const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML,url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');
-  a.href=url;a.download='dhaka-road.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
-  say('✅ গেম ডাউনলোড শুরু হয়েছে','#2e7d32');
- }catch(e){say('ডাউনলোড করা যায়নি। আবার চেষ্টা করো।')}
-});
+
 
 // passengers, money, garage
 const CAP={rick:2,car:4,bus:15},RATE={rick:1,car:1.5,bus:.8},PR={rick:0,car:1500,bus:2300},NM={rick:'🛺 রিকশা',car:'🚗 সাদা গাড়ি',bus:'🚌 লাল বাস'};
