@@ -411,7 +411,7 @@ $('dlb').addEventListener('click',()=>{
 const CAP={rick:2,car:4,bus:15},RATE={rick:1,car:1.5,bus:.8},PR={rick:0,car:1500,bus:2300},NM={rick:'🛺 রিকশা',car:'🚗 সাদা গাড়ি',bus:'🚌 লাল বাস'};
 Object.keys(CARS).forEach(k=>{CAP[k]=CARS[k].cap;RATE[k]=CARS[k].rate;PR[k]=CARS[k].price;NM[k]='🚘 '+CARS[k].n});
 const ORDER=['rick','car','bus',...Object.keys(CARS)];
-let money=Number(SV.money)||0,earned=Number(SV.earned)||0;
+let money=Number(SV.money)||0,earned=Number(SV.earned)||0;if(!Number.isFinite(money))money=0;if(!Number.isFinite(earned))earned=0;
 const onb=[],stops=[],PC=[0xe53935,0x1e88e5,0xfdd835,0x43a047,0x8e24aa,0xfb8c00];
 function sv(){try{localStorage.setItem('dr',JSON.stringify({money,earned,owned,cur:type}))}catch(e){}}
 // bus stops stand on the sidewalk (24.5 from block centre), never on the road
@@ -516,8 +516,9 @@ function drawMap(){
 // fines
 let fine=0,fcd=0,pcd=0;
 const FN={rick:10,car:10,bus:10},TICKET=20;
-function penalty(a,msg,bg){fine+=a;money=Math.max(0,money-a);sv();$('fn').textContent='জরিমানা: ৳'+fine;say(msg,bg)}
-function hit(w){if(fcd>0)return;fcd=1.5;penalty(FN[type],'💥 '+w+' ধাক্কা! জরিমানা ৳'+FN[type],'#c62828')}
+Object.keys(CARS).forEach(k=>{FN[k]=10});
+function penalty(a,msg,bg){a=Number(a)||0;if(!Number.isFinite(money))money=0;fine+=a;money=Math.max(0,money-a);sv();$('fn').textContent='জরিমানা: ৳'+fine;say(msg,bg)}
+function hit(w){if(fcd>0)return;fcd=2.2;const amt=FN[type]??10;penalty(amt,'💥 '+w+' ধাক্কা! জরিমানা ৳'+amt,'#c62828')}
 
 let last=performance.now();
 function loop(now){
@@ -525,7 +526,7 @@ function loop(now){
  const dt=Math.min(.05,(now-last)/1000);last=now;const t=VT[type];
  if(play){
   fcd-=dt;pcd-=dt;stopStep(dt);guide(now/1000);sndStep(dt);
-  $('mn').textContent='💵 ৳'+money+' · আয় ৳'+earned;$('ob').textContent='🧍 '+onb.length+'/'+CAP[type];
+  $('mn').textContent='💵 ৳'+money+' · আয় ৳'+earned;$('ob').textContent='🧍 '+onb.length+'/'+(CAP[type]||0);
   const up=K.KeyW||K.ArrowUp,dn=K.KeyS||K.ArrowDown,lt=K.KeyA||K.ArrowLeft,rt2=K.KeyD||K.ArrowRight;
   if(up)P.v+=t.ac*dt;else if(dn)P.v-=(P.v>0?t.ac*2.2:t.ac*.6)*dt;else P.v-=Math.sign(P.v)*Math.min(Math.abs(P.v),6*dt);
   if(K.Space)P.v-=Math.sign(P.v)*Math.min(Math.abs(P.v),t.ac*3*dt);
@@ -534,16 +535,24 @@ function loop(now){
   P.x+=Math.sin(P.h)*P.v*dt;P.z+=Math.cos(P.h)*P.v*dt;
   P.x=Math.max(-175,Math.min(175,P.x));P.z=Math.max(-175,Math.min(175,P.z));
   BK.forEach(b=>{
-   const hb=B/2+t.r*.8,dx=P.x-b[0],dz=P.z-b[1];
+   // Building mesh is 22x22 — keep road clear (was using full block B/2)
+   const hb=11.2+(t.r||2)*.7,dx=P.x-b[0],dz=P.z-b[1];
    if(Math.abs(dx)<hb&&Math.abs(dz)<hb){
     const px=hb-Math.abs(dx),pz=hb-Math.abs(dz);
     if(px<pz)P.x+=Math.sign(dx||1)*px;else P.z+=Math.sign(dz||1)*pz;
-    P.v*=.6;if(Math.abs(P.v)>1.5)hit('বিল্ডিংয়ে');
+    P.v*=.55;if(Math.abs(P.v)>2)hit('বিল্ডিংয়ে');
    }
   });
   npcs.forEach(n=>{
-   const dx=P.x-n.m.position.x,dz=P.z-n.m.position.z,d=Math.hypot(dx,dz),m=t.r+(n.ty==='bus'?4.8:n.ty==='rick'?1.8:2.5);
-   if(d<m&&d>.01){P.x+=dx/d*(m-d)*.5;P.z+=dz/d*(m-d)*.5;P.v*=.93;hit(n.ty==='bus'?'বাসে':n.ty==='rick'?'রিকশায়':n.ty==='police'?'পুলিশের গাড়িতে':'গাড়িতে')}
+   const dx=P.x-n.m.position.x,dz=P.z-n.m.position.z,d=Math.hypot(dx,dz);
+   // Tighter radii so far-away buses/cars no longer trigger hits
+   const nr=n.ty==='bus'?3.0:n.ty==='rick'?1.2:n.ty==='police'?2.0:1.95;
+   const m=(t.r||2)*.85+nr;
+   if(d<m&&d>.05){
+    const pen=m-d;
+    P.x+=dx/d*pen*.9;P.z+=dz/d*pen*.9;P.v*=.88;
+    if(pen>0.4)hit(n.ty==='bus'?'বাসে':n.ty==='rick'?'রিকশায়':n.ty==='police'?'পুলিশের গাড়িতে':'গাড়িতে');
+   }
   });
   // over-speed: cameras and police
   const spd=Math.abs(P.v)*3,over=spd>LIM+3;
